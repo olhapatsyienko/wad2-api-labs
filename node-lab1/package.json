@@ -3,16 +3,17 @@
   "version": "1.0.0",
   "description": "node lab 1",
   "main": "index.js",
- "scripts": {
+  "scripts": {
     "start": "babel-node index.js",
     "dev": "nodemon --exec npm start"
   },
-
   "author": "olhapatsyienko",
   "license": "ISC",
   "devDependencies": {
     "babel-cli": "^6.26.0",
+    "babel-eslint": "^10.1.0",
     "babel-preset-env": "^1.7.0",
+    "eslint": "^9.39.1",
     "nodemon": "^3.1.11"
   },
   "dependencies": {
