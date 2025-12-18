@@ -1,93 +1,42 @@
+import { BrowserRouter, Route, Routes, Navigate } from "react-router";
+import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import LoginPage from "./pages/loginPage";
+import SignupPage from "./pages/signupPage";
+import TasksPage from "./pages/tasksPage";
+import StartPage from "./pages/startPage";
+import ProfilePage from "./pages/profilePage";
 import './App.css';
-import Task from './components/Task';
-import AddTaskForm from './components/Form';
-import React, { useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 
-function App() {
-  const [taskState, setTaskState] = useState({
-    tasks: [
-      { id: 1, priority: "low", title: "Dishes", description: "Empty dishwasher", deadline: "Today", done: false },
-      { id: 2, priority: "medium", title: "Laundry", description: "Fold clothes and put away", deadline: "Tomorrow", done: false},
-      { id: 3, priority: "high",title: "Tidy up", deadline: "Today", done: false }
-    ]
-  });
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 360000,
+      refetchInterval: 360000,
+      refetchOnWindowFocus: false
+    },
+  },
+});
 
-  const [ formState, setFormState ] = useState({
-    title: "",
-    description: "",
-    deadline: "",
-    priority: "low"
-  });
-
-  const doneHandler = (taskIndex) => {
-    const tasks = [...taskState.tasks];
-    tasks[taskIndex].done = !tasks[taskIndex].done;
-    setTaskState({tasks});
-    console.log(`${taskIndex} ${tasks[taskIndex].done}`);
-  }
-
-  const deleteHandler = (taskIndex) => {
-    const tasks = [...taskState.tasks];
-    tasks.splice(taskIndex, 1);
-    setTaskState({tasks});
-  }
-
-  const formChangeHandler = (event) => {
-    let form = {...formState};
-
-    switch(event.target.name) {
-      case "title":
-          form.title = event.target.value;
-          break;
-      case "description":
-          form.description = event.target.value;
-          break;
-      case "deadline":
-          form.deadline = event.target.value;
-          break;
-      case "priority":
-          form.priority = event.target.value;
-          break;
-      default:
-          form = formState;
-    }
-    setFormState(form);
-  }
-
-  console.log(formState);
-
-  const formSubmitHandler = (event) => {
-    event.preventDefault();
-
-    const tasks = [...taskState.tasks];
-    const form = {...formState};
-
-    form.id = uuidv4();
-    form.done = false;
-    
-    tasks.push(form);
-    setTaskState({tasks});
-  }
-
+const App = () => {
   return (
-    <div className="container">
-      <h1>Tasky</h1>
-       {taskState.tasks.map((task, index) => (
-        <Task 
-          title={task.title}
-          description={task.description}
-          deadline={task.deadline}
-          priority={task.priority}
-          key={task.id}
-          done={task.done}
-          markDone={() => doneHandler(index)}
-          deleteTask={() => deleteHandler(index)}
-        />
-        ))}
-      <AddTaskForm submit={formSubmitHandler} change={formChangeHandler} />
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <div className="container">
+          <h1>Tasky</h1>
+          <Routes>
+            <Route path="/" element={< StartPage />} />
+            <Route path="/login" element={< LoginPage />} />
+            <Route path="/signup" element={< SignupPage />} />
+            <Route path="/tasks" element={< TasksPage />} />
+            <Route path="/profile" element={< ProfilePage />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </div>
+      </BrowserRouter>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
   );
-}
+};
 
 export default App;
