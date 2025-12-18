@@ -25,8 +25,16 @@ const AuthContextProvider = (props) => {
   };
 
   const register = async (username, password) => {
-    const result = await signup(username, password);
-    return result.success;
+    try {
+      const result = await signup(username, password);
+      if (!result.success) {
+        throw new Error(result.msg || 'Registration failed');
+      }
+      return result.success;
+    } catch (error) {
+      // Re-throw the error so it can be caught by the component
+      throw error;
+    }
   };
 
   const signout = () => {

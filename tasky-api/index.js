@@ -1,19 +1,29 @@
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
+
+// Load environment variables FIRST before importing anything that uses them
+dotenv.config();
+
 import tasksRouter from './api/tasks';
 import usersRouter from './api/users';
 import './db';
 import authenticate from './api/tasks/authenticate';
-dotenv.config();
 
 const errHandler = (err, req, res, next) => {
-  /* if the error in development then send stack trace to display whole error,
-  if it's in production then just send error message  */
-  if(process.env.NODE_ENV === 'production') {
-    return res.status(500).send(`Something went wrong!`);
+  if (!res.headersSent) {
+    if(process.env.NODE_ENV === 'production') {
+      return res.status(500).json({ success: false, msg: 'Something went wrong!' });
+    }
+    return res.status(500).json({ 
+      success: false, 
+      msg: err?.message || 'Internal server error'
+    });
   }
-  res.status(500).send(`Hey!! You caught the error 👍👍. Here's the details: ${err.stack} `);
+  
+  if (typeof next === 'function') {
+    next(err);
+  }
 };
 
 
@@ -28,6 +38,11 @@ app.use(express.json());
 app.use('api/tasks',authenticate, tasksRouter);
 app.use('/api/users', usersRouter);
 app.use(errHandler);
+
+if (!process.env.MONGO_DB) {
+  console.error('ERROR: MONGO_DB environment variable is not set!');
+  process.exit(1);
+}
 
 app.listen(port, () => {
   console.info(`Server running at ${port}`);

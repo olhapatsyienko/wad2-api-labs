@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import User from './userModel';
 import asyncHandler from 'express-async-handler';
 import jwt from 'jsonwebtoken';
@@ -13,19 +14,13 @@ router.get('/', async (req, res) => {
 
 // register(Create)/Authenticate User
 router.post('/', asyncHandler(async (req, res) => {
-    try {
-        if (!req.body.username || !req.body.password) {
-            return res.status(400).json({ success: false, msg: 'Username and password are required.' });
-        }
-        if (req.query.action === 'register') {
-            await registerUser(req, res);
-        } else {
-            await authenticateUser(req, res);
-        }
-    } catch (error) {
-        // Log the error and return a generic error message
-        console.error(error);
-        res.status(500).json({ success: false, msg: 'Internal server error.' });
+    if (!req.body.username || !req.body.password) {
+        return res.status(400).json({ success: false, msg: 'Username and password are required.' });
+    }
+    if (req.query.action === 'register') {
+        return await registerUser(req, res);
+    } else {
+        return await authenticateUser(req, res);
     }
 }));
 
@@ -38,8 +33,29 @@ async function registerUser(req, res) {
             msg: 'Password must be at least 8 characters long and contain at least one letter, one digit, and one special character (@$!%*#?&).' 
         });
     }
-    await User.create(req.body);
-    res.status(201).json({ success: true, msg: 'User successfully created.' });
+    
+    if (mongoose.connection.readyState !== 1) {
+        throw new Error('Database is not connected. Please check your MongoDB connection.');
+    }
+    
+    try {
+        await User.create(req.body);
+        return res.status(201).json({ success: true, msg: 'User successfully created.' });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({ 
+                success: false, 
+                msg: 'Username already exists. Please choose a different username.' 
+            });
+        }
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ 
+                success: false, 
+                msg: error.message || 'Validation error occurred.' 
+            });
+        }
+        throw error;
+    }
 }
 
 async function authenticateUser(req, res) {
@@ -50,10 +66,13 @@ async function authenticateUser(req, res) {
 
     const isMatch = await user.comparePassword(req.body.password);
     if (isMatch) {
+        if (!process.env.SECRET) {
+            throw new Error('JWT_SECRET is not configured');
+        }
         const token = jwt.sign({ username: user.username }, process.env.SECRET);
-        res.status(200).json({ success: true, token: 'BEARER ' + token });
+        return res.status(200).json({ success: true, token: 'BEARER ' + token });
     } else {
-        res.status(401).json({ success: false, msg: 'Wrong password.' });
+        return res.status(401).json({ success: false, msg: 'Wrong password.' });
     }
 }
 
